@@ -1,74 +1,78 @@
-﻿const express = require('express');
+﻿import { PORT } from "./config/config.js";
+import express from "express";
+import coffees from "./coffees.json";
+
+import { config } from "dotenv";
+config()
+
 const app = express();
 
-const cafes = require("./cafes.json")
+app.use(express.json());
 
-app.listen(3000, console.log("SERVER ON"))
+app.get("/coffees", (req, res) => {
+    res.status(200).send(coffees);
+});
 
-app.use(express.json())
-
-app.get("/cafes", (req, res) => {
-    res.status(200).send(cafes)
-})
-
-app.get("/cafes/:id", (req, res) => {
-    const { id } = req.params
-    const cafe = cafes.find(c => c.id == id)
-    if (cafe) res.status(200).send(cafe)
-    else res.status(404).send({ message: "No se encontró ningún cafe con ese id" })
-})
-
-app.post("/cafes", (req, res) => {
-    const cafe = req.body
-    const { id } = cafe
-    const existeUncafeConEseId = cafes.some(c => c.id == id)
-    if (existeUncafeConEseId) res.status(400).send({ message: "Ya existe un cafe con ese id" })
-    else {
-        cafes.push(cafe)
-        res.status(201).send(cafes)
-    }
-})
-
-app.put("/cafes/:id", (req, res) => {
-    const cafe = req.body;
+app.get("/coffees/:id", (req, res) => {
     const { id } = req.params;
-    if (id != cafe.id)
-        return res
-            .status(400)
-            .send({
-                message: "El id del parámetro no coincide con el id del café recibido",
-            });
+    const coffee = coffees.find((c) => c.id == id);
+    if (coffee) res.status(200).send(coffee);
+    else res.status(404).send({ message: "No coffee found with this id" });
+});
 
-    const cafeIndexFound = cafes.findIndex((p) => p.id == id);
-    if (cafeIndexFound >= 0) {
-        cafes[cafeIndexFound] = cafe;
-        res.send(cafes);
-    } else {
-        res
-            .status(404)
-            .send({ message: "No se encontró ningún café con ese id" });
+app.post("/coffees", (req, res) => {
+    const coffee = req.body;
+    const { id } = coffee;
+    const existingCoffeeWithThisId = coffees.some((c) => c.id == id);
+    if (existingCoffeeWithThisId)
+        res.status(400).send({
+            message: "There's already a coffee with this id",
+        });
+    else {
+        coffees.push(coffee);
+        res.status(201).send(coffee);
     }
 });
 
-app.delete("/cafes/:id", (req, res) => {
-    const jwt = req.header("Authorization")
+app.put("/coffees/:id", (req, res) => {
+    const coffee = req.body;
+    const { id } = req.params;
+    if (id != coffee.id)
+        return res.status(400).send({
+            message: "Param id doesn't match with the coffee id",
+        });
+
+    const coffeeIndexFound = coffees.findIndex((p) => p.id == id);
+    if (coffeeIndexFound >= 0) {
+        coffees[coffeeIndexFound] = coffee;
+        res.send(coffees);
+    } else {
+        res.status(404).send({ message: "There's no coffee with this id" });
+    }
+});
+
+app.delete("/coffees/:id", (req, res) => {
+    const jwt = req.header("Authorization");
     if (jwt) {
-        const { id } = req.params
-        const cafeIndexFound = cafes.findIndex(c => c.id == id)
+        const { id } = req.params;
+        const coffeeIndexFound = coffees.findIndex((c) => c.id == id);
 
-        if (cafeIndexFound >= 0) {
-            cafes.splice(cafeIndexFound, 1)
-            console.log(cafeIndexFound, cafes)
-            res.send(cafes)
+        if (coffeeIndexFound >= 0) {
+            coffees.splice(coffeeIndexFound, 1);
+            console.log(coffeeIndexFound, coffees);
+            res.send(coffees);
         } else {
-            res.status(404).send({ message: "No se encontró ningún cafe con ese id" })
+            res.status(404).send({ message: "There's no coffee with this id" });
         }
-
-    } else res.status(400).send({ message: "No recibió ningún token en las cabeceras" })
-})
+    } else res.status(400).send({ message: "There's no token in the headers" });
+});
 
 app.use("*", (req, res) => {
-    res.status(404).send({ message: "La ruta que intenta consultar no existe" })
-})
+    res.status(404).send({ message: "This route doesn't exists" });
+});
 
-module.exports = app
+app.listen(PORT, () => {
+    console.log(`🔥 Server on 🔥 http://localhost:${PORT}`);
+});
+
+export default app;
